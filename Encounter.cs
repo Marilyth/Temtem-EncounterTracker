@@ -1,12 +1,6 @@
 using System;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Threading;
-using Tesseract;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
@@ -65,26 +59,11 @@ namespace Temtem_EncounterTracker
                         await Program.DrawEncounterTable();
                         Save(this);
 
-                        int counter = 0;
                         //Wait for encounter to end
-                        while (true)
+                        while (temtem.IsInEncounter())
                         {
-                            if (temtem.IsTemtemActive())
-                            {
-                                bool isEmpty = true;
-                                foreach (bool b in bools)
-                                {
-                                    var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b));
-                                    if (!string.IsNullOrEmpty(temtemType) && temtemType.Length > 2 && !char.IsLower(temtemType[0])) isEmpty = false;
-                                }
-                                if (isEmpty) counter++;
-                                else counter = 0;
-                                if(counter == 10) break;
-                                await Task.Delay(100);
-                            }
+                            await Task.Delay(100);
                         }
-
-                        await Task.Delay(3000);
                     }
 
                     await Task.Delay(200);

@@ -4,7 +4,6 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Threading;
 using Tesseract;
 using System.IO;
 
@@ -76,6 +75,49 @@ namespace Temtem_EncounterTracker
             //bmp.Save("Temtem1.png", System.Drawing.Imaging.ImageFormat.Png);
 
             return ToByteArray(bmp, System.Drawing.Imaging.ImageFormat.Tiff);
+        }
+
+        public bool IsInEncounter(){
+            var rect = new User32.Rect();
+            User32.GetClientRect(temtemProcess.MainWindowHandle, ref rect);
+            var point = new Point();
+            ClientToScreen(temtemProcess.MainWindowHandle, ref point);
+            rect.top = point.Y;
+            rect.left = point.X;
+            rect.right = point.X + rect.right;
+            rect.bottom = point.Y + rect.bottom;
+
+            int width = rect.right - rect.left;
+            int height = rect.bottom - rect.top;
+
+            //Only consider the text area of the screen
+            int heightText = (int)(height * 0.1);
+            int widthText = (int)(width * 0.1);
+            int topText = rect.top + (int)(height * 0.9);
+            int leftText = rect.left + (int)(width * 0.44);
+
+            var bmp = new Bitmap(widthText, heightText, PixelFormat.Format32bppArgb);
+            //var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            using (Graphics graphics = Graphics.FromImage(bmp))
+            {
+                graphics.CopyFromScreen(leftText, topText, 0, 0, new Size(widthText, heightText), CopyPixelOperation.SourceCopy);
+                //graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
+            }
+
+            for(int i = 0; i < widthText; i++){
+                for(int j = 0; j < heightText; j++){
+                    if(ColorDifference(bmp.GetPixel(i, j), Color.White) < 100){
+                        bmp.SetPixel(i, j, Color.Black);
+                    } else {
+                        bmp.SetPixel(i, j, Color.White);
+                    }
+                }
+            }
+            //bmp.Save("Temtem1.png", System.Drawing.Imaging.ImageFormat.Png);
+
+            string text = GetScreenText(ToByteArray(bmp, System.Drawing.Imaging.ImageFormat.Tiff));
+
+            return (!text.Contains("Temtem") && !text.Contains("Early") && !text.Contains("Access"));
         }
 
         public double ColorDifference(Color c1, Color c2){

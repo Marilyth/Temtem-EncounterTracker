@@ -1,13 +1,6 @@
 ﻿using System;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Threading;
-using Tesseract;
 using System.Linq;
-using System.IO;
 
 namespace Temtem_EncounterTracker
 {
@@ -17,7 +10,13 @@ namespace Temtem_EncounterTracker
 
         static void Main(string[] args)
         {
-            Start().GetAwaiter().GetResult();
+            while(true){
+                try{
+                    Start().GetAwaiter().GetResult();
+                } catch(Exception e){
+                    Console.WriteLine(e.Message);
+                }
+            }
         }
 
         public static async Task Start()
