@@ -1,0 +1,6 @@
+data/
+bin/
+.vscode/
+obj/
+publish/
+Text.png
