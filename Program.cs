@@ -36,7 +36,7 @@ namespace Temtem_EncounterTracker
         }
 
         public static async Task DrawEncounterTable(){
-            #if DEBUG
+            #if !DEBUG
                 Console.Clear();
             #endif
 
