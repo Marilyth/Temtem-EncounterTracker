@@ -37,7 +37,7 @@ namespace Temtem_EncounterTracker
                     foreach (bool b in bools)
                     {
                         var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b)).Replace("\n", "");
-                        if (string.IsNullOrEmpty(temtemType)) continue;
+                        if (string.IsNullOrEmpty(temtemType) || temtemType.Length < 2) continue;
                         temFound = true;
 
                         if (!Encounters.ContainsKey(temtemType))
@@ -46,6 +46,7 @@ namespace Temtem_EncounterTracker
                         Encounters[temtemType].HowOften += 1;
                         Encounters[temtemType].LastEncounter = DateTime.UtcNow;
                         await temtemEncountered(temtemType);
+                        await Task.Delay(200);
                     }
 
                     if (temFound)
