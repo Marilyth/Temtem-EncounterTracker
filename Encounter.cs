@@ -34,25 +34,36 @@ namespace Temtem_EncounterTracker
                 {
                     bool temFound = false;
                     bool[] bools = { true, false };
-                    foreach (bool b in bools)
+
+                    //Check multiple times in case screen flashed
+                    bool[] wasFound = {false, false};
+                    for (int i = 0; i < 10; i++)
                     {
-                        var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b)).Replace("\n", "");
-                        if (string.IsNullOrEmpty(temtemType) || temtemType.Length < 2) continue;
-                        temFound = true;
+                        for(int j = 0; j < bools.Length; j++)
+                        {
+                            if(wasFound[j]) continue;
 
-                        if (!Encounters.ContainsKey(temtemType))
-                            Encounters[temtemType] = new EncounterInfo();
+                            var temtemType = temtem.GetScreenText(await temtem.GetTemtem(bools[j])).Replace("\n", "");
+                            if (string.IsNullOrEmpty(temtemType) || temtemType.Length <= 2) continue;
+                            temFound = true;
+                            wasFound[j] = true;
 
-                        Encounters[temtemType].HowOften += 1;
-                        Encounters[temtemType].LastEncounter = DateTime.UtcNow;
-                        //await temtemEncountered(temtemType);
-                        await Task.Delay(100);
+                            if (!Encounters.ContainsKey(temtemType))
+                                Encounters[temtemType] = new EncounterInfo();
+
+                            Encounters[temtemType].HowOften += 1;
+                            Encounters[temtemType].LastEncounter = DateTime.UtcNow;
+                            //await temtemEncountered(temtemType);
+                            await Task.Delay(100);
+                        }
+                        if(wasFound.All(x => x)) break;
                     }
-
-                    await Program.DrawEncounterTable();
 
                     if (temFound)
                     {
+                        await Program.DrawEncounterTable();
+                        Save(this);
+
                         //Wait for encounter to end
                         while (true)
                         {
