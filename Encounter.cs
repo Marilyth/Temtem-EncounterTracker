@@ -44,7 +44,7 @@ namespace Temtem_EncounterTracker
                             if(wasFound[j]) continue;
 
                             var temtemType = temtem.GetScreenText(await temtem.GetTemtem(bools[j])).Replace("\n", "");
-                            if (string.IsNullOrEmpty(temtemType) || temtemType.Length <= 2) continue;
+                            if (string.IsNullOrEmpty(temtemType) || temtemType.Length <= 2 || char.IsLower(temtemType[0])) continue;
                             temFound = true;
                             wasFound[j] = true;
 
@@ -75,7 +75,7 @@ namespace Temtem_EncounterTracker
                                 foreach (bool b in bools)
                                 {
                                     var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b));
-                                    if (!string.IsNullOrEmpty(temtemType)) isEmpty = false;
+                                    if (!string.IsNullOrEmpty(temtemType) && temtemType.Length > 2 && !char.IsLower(temtemType[0])) isEmpty = false;
                                 }
                                 if (isEmpty) counter++;
                                 else counter = 0;
