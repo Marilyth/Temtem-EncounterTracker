@@ -45,9 +45,11 @@ namespace Temtem_EncounterTracker
 
                         Encounters[temtemType].HowOften += 1;
                         Encounters[temtemType].LastEncounter = DateTime.UtcNow;
-                        await temtemEncountered(temtemType);
+                        //await temtemEncountered(temtemType);
                         await Task.Delay(100);
                     }
+
+                    await Program.DrawEncounterTable();
 
                     if (temFound)
                     {
