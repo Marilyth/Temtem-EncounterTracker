@@ -30,38 +30,46 @@ namespace Temtem_EncounterTracker
 
             while (true)
             {
-                string text = "";
-                while(!text.Contains("An untamed") || !text.Contains("found you"))
+                if (temtem.IsTemtemActive())
                 {
-                    //await temtem.WaitForEncounter();
-                    //await Task.Delay(4000);
-                    if(temtem.IsTemtemActive()){
-                        var bytes = await temtem.GetEncounterScreenshot();
-                        text = temtem.GetScreenText(bytes).Replace("Tound", "found");
+                    bool temFound = false;
+                    bool[] bools = { true, false };
+                    foreach (bool b in bools)
+                    {
+                        var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b)).Replace("\n", "");
+                        if (string.IsNullOrEmpty(temtemType)) continue;
+                        temFound = true;
+
+                        if (!Encounters.ContainsKey(temtemType))
+                            Encounters[temtemType] = new EncounterInfo();
+
+                        Encounters[temtemType].HowOften += 1;
+                        Encounters[temtemType].LastEncounter = DateTime.UtcNow;
+                        await temtemEncountered(temtemType);
                     }
+
+                    if (temFound)
+                    {
+                        //Wait for encounter to end
+                        while (true)
+                        {
+                            if (temtem.IsTemtemActive())
+                            {
+                                bool isEmpty = true;
+                                foreach (bool b in bools)
+                                {
+                                    var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b));
+                                    if (!string.IsNullOrEmpty(temtemType)) isEmpty = false;
+                                }
+                                if (isEmpty) break;
+                            }
+                        }
+
+                        await Task.Delay(3000);
+                    }
+
                     await Task.Delay(200);
                 }
-
-                do{
-                    var skipFirst = text.Split("n untamed ")[1];
-                    var temtemType = skipFirst.Split(" ").First(x => x.Length > 1);
-                    if(temtemType.Equals("team")) continue;
-                    bool isTeam = skipFirst.Contains("team");
-
-                    if (!Encounters.ContainsKey(temtemType))
-                        Encounters[temtemType] = new EncounterInfo();
-
-                    Encounters[temtemType].HowOften += isTeam ? 2 : 1;
-                    Encounters[temtemType].LastEncounter = DateTime.UtcNow;
-
-                    await temtemEncountered(temtemType);
-                    text = text.Split(temtemType)[1];
-                }while(text.Contains("and an"));
-
-                //await temtem.WaitForEncounter();
-                //await Task.Delay(1500);
-                await Task.Delay(2000);
-                text = "";
             }
         }
 
@@ -74,7 +82,7 @@ namespace Temtem_EncounterTracker
 
         public static void Save(Encounter toSave)
         {
-            if(!Directory.Exists("data"))
+            if (!Directory.Exists("data"))
                 Directory.CreateDirectory("data");
 
             var json = JsonConvert.SerializeObject(toSave);
@@ -95,8 +103,9 @@ namespace Temtem_EncounterTracker
             }
         }
     }
-    
-    public class EncounterInfo{
+
+    public class EncounterInfo
+    {
         public DateTime LastEncounter;
         public int HowOften;
     }

@@ -33,7 +33,7 @@ namespace Temtem_EncounterTracker
             return p.Id == temtemProcess.Id;
         }
 
-        public async Task<byte[]> GetEncounterScreenshot()
+        public async Task<byte[]> GetTemtem(bool first = true)
         {
             var rect = new User32.Rect();
             User32.GetWindowRect(temtemProcess.MainWindowHandle, ref rect);
@@ -42,10 +42,10 @@ namespace Temtem_EncounterTracker
             int height = rect.bottom - rect.top;
 
             //Only consider the text area of the screen
-            int heightText = (int)(height * 0.05);
-            int widthText = (int)(width * 0.6);
-            int topText = rect.top + (int)(height * 0.83);
-            int leftText = rect.left + (int)(width * 0.2);
+            int heightText = (int)(height * 0.03);
+            int widthText = (int)(width * 0.1);
+            int topText = rect.top + (int)(height * (first ? 0.11 : 0.06));
+            int leftText = rect.left + (int)(width * (first ? 0.81 : 0.61));
 
             var bmp = new Bitmap(widthText, heightText, PixelFormat.Format32bppArgb);
             using (Graphics graphics = Graphics.FromImage(bmp))
@@ -53,60 +53,18 @@ namespace Temtem_EncounterTracker
                 graphics.CopyFromScreen(leftText, topText, 0, 0, new Size(widthText, heightText), CopyPixelOperation.SourceCopy);
             }
 
-            bmp = DrawBitmapWithBorder(bmp, 1);
-            bmp.Save("Text.png", System.Drawing.Imaging.ImageFormat.Png);
+            for(int i = 0; i < widthText; i++){
+                for(int j = 0; j < heightText; j++){
+                    if(bmp.GetPixel(i, j).Name.Equals("ffffffff")){
+                        bmp.SetPixel(i, j, Color.Black);
+                    } else {
+                        bmp.SetPixel(i, j, Color.White);
+                    }
+                }
+            }
+            //bmp.Save("Temtem1.png", System.Drawing.Imaging.ImageFormat.Png);
 
             return ToByteArray(bmp, System.Drawing.Imaging.ImageFormat.Tiff);
-        }
-
-        private static Bitmap DrawBitmapWithBorder(Bitmap bmp, int borderSize = 10)
-        {
-            int newWidth = bmp.Width + (borderSize * 2);
-            int newHeight = bmp.Height + (borderSize * 2);
-
-            Image newImage = new Bitmap(newWidth, newHeight);
-            using (Graphics gfx = Graphics.FromImage(newImage))
-            {
-                using (Brush border = new SolidBrush(Color.White))
-                {
-                    gfx.FillRectangle(border, 0, 0,
-                        newWidth, newHeight);
-                }
-                gfx.DrawImage(bmp, new Rectangle(borderSize, borderSize, bmp.Width, bmp.Height));
-
-            }
-            return (Bitmap)newImage;
-        }
-
-        public async Task WaitForEncounter()
-        {
-            var rect = new User32.Rect();
-            User32.GetWindowRect(temtemProcess.MainWindowHandle, ref rect);
-
-            int width = rect.right - rect.left;
-            int height = rect.bottom - rect.top;
-
-            //Only consider the text area of the screen
-            int heightText = (int)(height * 0.05);
-            int widthText = (int)(width * 0.6);
-            int topText = rect.top + (int)(height * 0.85);
-            int leftText = rect.left + (int)(width * 0.2);
-
-            //Wait for obvious encounter by checking if pixel is black
-            while (true)
-            {
-                var pixel = new Bitmap(1, 1, PixelFormat.Format32bppArgb);
-
-                using (Graphics graphics = Graphics.FromImage(pixel))
-                {
-                    graphics.CopyFromScreen(leftText, topText, 0, 0, new Size(1, 1), CopyPixelOperation.SourceCopy);
-                }
-
-                var color = pixel.GetPixel(0, 0);
-                if (color.Name.Equals("ff000000")) break;
-
-                await Task.Delay(20);
-            }
         }
 
         public byte[] ToByteArray(Image image, System.Drawing.Imaging.ImageFormat format)
@@ -121,12 +79,11 @@ namespace Temtem_EncounterTracker
         public string GetScreenText(byte[] image)
         {
             var ocrtext = string.Empty;
-            using (var engine = new TesseractEngine(@"tessdata", "eng", EngineMode.Default, @"tessdata\configs\quiet"))
+            using (var engine = new TesseractEngine(@"tessdata", "eng", EngineMode.Default, @"tessdata\configs\temtem"))
             {
-                var worked = engine.SetVariable("debug_file", "/dev/null");
                 using (var img = Pix.LoadTiffFromMemory(image))
                 {
-                    using (var page = engine.Process(img))
+                    using (var page = engine.Process(img, PageSegMode.SingleBlock))
                     {
                         ocrtext = page.GetText();
                     }
