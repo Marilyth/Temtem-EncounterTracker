@@ -17,11 +17,11 @@ namespace Temtem_EncounterTracker
     {
         public event MainEventHandler OnTemtemEncountered;
         public delegate Task MainEventHandler(string Temtem, int counter);
-        public Dictionary<string, int> Encounters;
+        public Dictionary<string, EncounterInfo> Encounters;
 
         private Encounter()
         {
-            Encounters = new Dictionary<string, int>();
+            Encounters = new Dictionary<string, EncounterInfo>();
         }
 
         public async Task CheckForEncounters()
@@ -49,9 +49,11 @@ namespace Temtem_EncounterTracker
                     bool isTeam = skipFirst.Contains("team");
 
                     if (!Encounters.ContainsKey(temtemType))
-                        Encounters[temtemType] = 0;
+                        Encounters[temtemType] = new EncounterInfo();
 
-                    Encounters[temtemType] += isTeam ? 2 : 1;
+                    Encounters[temtemType].HowOften += isTeam ? 2 : 1;
+                    Encounters[temtemType].LastEncounter = DateTime.UtcNow;
+
                     await temtemEncountered(temtemType);
                     text = text.Split(temtemType)[1];
                 }while(text.Contains("and an"));
@@ -66,7 +68,7 @@ namespace Temtem_EncounterTracker
         private async Task temtemEncountered(string Temtem)
         {
             if (OnTemtemEncountered != null)
-                await OnTemtemEncountered(Temtem, Encounters[Temtem]);
+                await OnTemtemEncountered(Temtem, Encounters[Temtem].HowOften);
             Save(this);
         }
 
@@ -92,5 +94,10 @@ namespace Temtem_EncounterTracker
                 return new Encounter();
             }
         }
+    }
+    
+    public class EncounterInfo{
+        public DateTime LastEncounter;
+        public int HowOften;
     }
 }
