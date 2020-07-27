@@ -36,7 +36,10 @@ namespace Temtem_EncounterTracker
         }
 
         public static async Task DrawEncounterTable(){
-            //Console.Clear();
+            #if DEBUG
+                Console.Clear();
+            #endif
+
             string table = String.Format("{0, -20} | {1, -10} | {2, -23}\n", "Temtem", "Encounters", "Last Encounter");
             table += "------------------------------------------------------------------\n";
             foreach(var temtem in encounter.Encounters.OrderByDescending(x => x.Value.LastEncounter)){
