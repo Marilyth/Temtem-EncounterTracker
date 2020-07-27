@@ -37,7 +37,7 @@ namespace Temtem_EncounterTracker
 
                     //Check multiple times in case screen flashed
                     bool[] wasFound = {false, false};
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         for(int j = 0; j < bools.Length; j++)
                         {
@@ -52,6 +52,7 @@ namespace Temtem_EncounterTracker
                                 Encounters[temtemType] = new EncounterInfo();
 
                             Encounters[temtemType].HowOften += 1;
+                            Encounters[temtemType].HowOftenToday += 1;
                             Encounters[temtemType].LastEncounter = DateTime.UtcNow;
                             //await temtemEncountered(temtemType);
                             await Task.Delay(100);
@@ -64,6 +65,7 @@ namespace Temtem_EncounterTracker
                         await Program.DrawEncounterTable();
                         Save(this);
 
+                        int counter = 0;
                         //Wait for encounter to end
                         while (true)
                         {
@@ -75,7 +77,10 @@ namespace Temtem_EncounterTracker
                                     var temtemType = temtem.GetScreenText(await temtem.GetTemtem(b));
                                     if (!string.IsNullOrEmpty(temtemType)) isEmpty = false;
                                 }
-                                if (isEmpty) break;
+                                if (isEmpty) counter++;
+                                else counter = 0;
+                                if(counter == 10) break;
+                                await Task.Delay(100);
                             }
                         }
 
@@ -122,5 +127,8 @@ namespace Temtem_EncounterTracker
     {
         public DateTime LastEncounter;
         public int HowOften;
+
+        [JsonIgnore]
+        public int HowOftenToday;
     }
 }
