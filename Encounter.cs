@@ -4,66 +4,73 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using System.Net.Http;
 
 namespace Temtem_EncounterTracker
 {
     public class Encounter
     {
+        [JsonIgnore]
+        public Dictionary<string, Temtem> Temtems;
+        [JsonIgnore]
+        public Dictionary<string, Dictionary<string, double>> AttackValues;
         public event MainEventHandler OnTemtemEncountered;
         public delegate Task MainEventHandler(string Temtem, int counter);
         public Dictionary<string, EncounterInfo> Encounters;
+        [JsonIgnore]
+        public TemtemWindow temtem;
 
         private Encounter()
         {
             Encounters = new Dictionary<string, EncounterInfo>();
+
+            HttpClient client = new HttpClient();
+            string result = client.GetStringAsync("https://temtem-api.mael.tech/api/temtems").Result;
+            var tempTems = JsonConvert.DeserializeObject<List<Temtem>>(result);
+            result = client.GetStringAsync("https://temtem-api.mael.tech/api/weaknesses").Result;
+            AttackValues = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, double>>>(result);
+            Temtems = tempTems.ToDictionary(x => x.name);
+            WriteTesseractWordlist();
         }
 
         public async Task CheckForEncounters()
         {
-            var temtem = new TemtemWindow();
+            temtem = new TemtemWindow();
 
             while (true)
             {
                 if (temtem.IsTemtemActive())
                 {
-                    bool temFound = false;
-                    bool[] bools = { true, false };
+                    string temtemA = null, temtemB = null;
 
-                    //Check multiple times in case screen flashed
-                    bool[] wasFound = {false, false};
-                    for (int i = 0; i < 20; i++)
+                    while (temtem.IsInEncounter())
                     {
-                        for(int j = 0; j < bools.Length; j++)
+                        bool updateUI = false;
+
+                        if (temtemA == null)
                         {
-                            if(wasFound[j]) continue;
-
-                            var temtemType = temtem.GetScreenText(await temtem.GetTemtem(bools[j])).Replace("\n", "");
-                            if (!nameIsLegit(temtemType)) continue;
-                            temFound = true;
-                            wasFound[j] = true;
-
-                            if (!Encounters.ContainsKey(temtemType))
-                                Encounters[temtemType] = new EncounterInfo();
-
-                            Encounters[temtemType].HowOften += 1;
-                            Encounters[temtemType].HowOftenToday += 1;
-                            Encounters[temtemType].LastEncounter = DateTime.UtcNow;
-                            //await temtemEncountered(temtemType);
-                            await Task.Delay(100);
+                            var text = temtem.GetScreenText(await temtem.GetTemtem(true)).Replace("\n", "").Split(" ").First();
+                            if (NameIsLegit(text)){
+                                temtemA = text;
+                                AddEncounter(temtemA);
+                                Program.currentEncounter = new HashSet<string>{temtemA, temtemB};
+                                updateUI = true;
+                            }
                         }
-                        if(wasFound.All(x => x)) break;
-                    }
 
-                    if (temFound)
-                    {
-                        await Program.DrawEncounterTable();
-                        Save(this);
-
-                        //Wait for encounter to end
-                        while (temtem.IsInEncounter())
+                        if (temtemB == null)
                         {
-                            await Task.Delay(100);
+                            var text = temtem.GetScreenText(await temtem.GetTemtem(false)).Replace("\n", "").Split(" ").First();
+                            if (NameIsLegit(text)){
+                                temtemB = text;
+                                AddEncounter(temtemB);
+                                Program.currentEncounter = new HashSet<string>{temtemA, temtemB};
+                                updateUI = true;
+                            }
                         }
+                        
+                        if(updateUI) await Program.DrawEncounterTable();
+                        await Task.Delay(100);
                     }
 
                     await Task.Delay(200);
@@ -71,8 +78,19 @@ namespace Temtem_EncounterTracker
             }
         }
 
-        private bool nameIsLegit(string temtemName){
-            return !(string.IsNullOrEmpty(temtemName) || temtemName.Length <= 2 || char.IsLower(temtemName[0]) || temtemName.Count(x => char.IsUpper(x)) > 1);
+        public void AddEncounter(string temtemName)
+        {
+            if (!Encounters.ContainsKey(temtemName))
+                Encounters[temtemName] = new EncounterInfo();
+
+            Encounters[temtemName].HowOften += 1;
+            Encounters[temtemName].HowOftenToday += 1;
+            Encounters[temtemName].LastEncounter = DateTime.UtcNow;
+        }
+
+        public bool NameIsLegit(string temtemName)
+        {
+            return Temtems.ContainsKey(temtemName ?? "");
         }
 
         private async Task temtemEncountered(string Temtem)
@@ -102,6 +120,32 @@ namespace Temtem_EncounterTracker
             catch (Exception e)
             {
                 return new Encounter();
+            }
+        }
+
+        public Dictionary<string, double> GetAttackValues(List<string> defendingElements)
+        {
+            Dictionary<string, double> attackValues = new Dictionary<string, double>();
+            foreach (var attackingElement in AttackValues.Keys)
+            {
+                double attackValue = 1;
+
+                foreach (var element in defendingElements)
+                {
+                    attackValue *= AttackValues[attackingElement][element];
+                }
+                attackValues[attackingElement] = attackValue;
+            }
+
+            return attackValues;
+        }
+
+        public void WriteTesseractWordlist(){
+            using (StreamWriter sw = new StreamWriter(new FileStream("tessdata//eng.user-words", FileMode.OpenOrCreate))){
+                sw.WriteLine(string.Join("\n", Temtems.Keys));
+                sw.WriteLine("Temtem");
+                sw.WriteLine("Early");
+                sw.Write("Access");
             }
         }
     }

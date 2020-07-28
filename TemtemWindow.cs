@@ -12,6 +12,7 @@ namespace Temtem_EncounterTracker
     public class TemtemWindow
     {
         private Process temtemProcess;
+        private int count = 0;
         public TemtemWindow()
         {
             temtemProcess = Process.GetProcessesByName("Temtem")[0];
@@ -35,7 +36,7 @@ namespace Temtem_EncounterTracker
             return p.Id == temtemProcess.Id;
         }
 
-        public async Task<byte[]> GetTemtem(bool first = true)
+        public async Task<byte[]> GetTemtem(bool first = true, bool fixedRBG = true)
         {
             var rect = new User32.Rect();
             User32.GetClientRect(temtemProcess.MainWindowHandle, ref rect);
@@ -65,14 +66,15 @@ namespace Temtem_EncounterTracker
 
             for(int i = 0; i < widthText; i++){
                 for(int j = 0; j < heightText; j++){
-                    if(ColorDifference(bmp.GetPixel(i, j), Color.White) < 30){
+                    var pixel = bmp.GetPixel(i, j);
+                    if(ColorDifference(pixel, Color.White) < 50 && (pixel.R == pixel.G && pixel.G == pixel.B)){
                         bmp.SetPixel(i, j, Color.Black);
                     } else {
                         bmp.SetPixel(i, j, Color.White);
                     }
                 }
             }
-            //bmp.Save("Temtem1.png", System.Drawing.Imaging.ImageFormat.Png);
+            //bmp.Save($"Temtem{count++}.png", System.Drawing.Imaging.ImageFormat.Png);
 
             return ToByteArray(bmp, System.Drawing.Imaging.ImageFormat.Tiff);
         }
@@ -90,34 +92,28 @@ namespace Temtem_EncounterTracker
             int width = rect.right - rect.left;
             int height = rect.bottom - rect.top;
 
-            //Only consider the text area of the screen
-            int heightText = (int)(height * 0.1);
-            int widthText = (int)(width * 0.1);
-            int topText = rect.top + (int)(height * 0.9);
-            int leftText = rect.left + (int)(width * 0.44);
+            int minimap1y = rect.top + (int)(height * 0.0692);
+            int minimap1x = rect.left + (int)(width * 0.8741);
+            int minimap2y = rect.top + (int)(height * 0.1927);
+            int minimap2x = rect.left + (int)(width * 0.977);
 
-            var bmp = new Bitmap(widthText, heightText, PixelFormat.Format32bppArgb);
-            //var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-            using (Graphics graphics = Graphics.FromImage(bmp))
+            var bmp1 = new Bitmap(1, 1, PixelFormat.Format32bppArgb);
+            var bmp2 = new Bitmap(1, 1, PixelFormat.Format32bppArgb);
+            using (Graphics graphics = Graphics.FromImage(bmp1))
             {
-                graphics.CopyFromScreen(leftText, topText, 0, 0, new Size(widthText, heightText), CopyPixelOperation.SourceCopy);
+                graphics.CopyFromScreen(minimap1x, minimap1y, 0, 0, new Size(1, 1), CopyPixelOperation.SourceCopy);
                 //graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
             }
-
-            for(int i = 0; i < widthText; i++){
-                for(int j = 0; j < heightText; j++){
-                    if(ColorDifference(bmp.GetPixel(i, j), Color.White) < 100){
-                        bmp.SetPixel(i, j, Color.Black);
-                    } else {
-                        bmp.SetPixel(i, j, Color.White);
-                    }
-                }
+            using (Graphics graphics = Graphics.FromImage(bmp2))
+            {
+                graphics.CopyFromScreen(minimap2x, minimap2y, 0, 0, new Size(1, 1), CopyPixelOperation.SourceCopy);
+                //graphics.CopyFromScreen(rect.left, rect.top, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
             }
-            //bmp.Save("Temtem1.png", System.Drawing.Imaging.ImageFormat.Png);
-
-            string text = GetScreenText(ToByteArray(bmp, System.Drawing.Imaging.ImageFormat.Tiff));
-
-            return (!text.Contains("Temtem") && !text.Contains("Early") && !text.Contains("Access"));
+            
+            var pixel1 = bmp1.GetPixel(0, 0);
+            var pixel2 = bmp2.GetPixel(0, 0);
+            return !(pixel1.R == 60 && pixel1.G == 232 && pixel1.B == 234 &&
+                   pixel2.R == 60 && pixel2.G == 232 && pixel2.B == 234);
         }
 
         public double ColorDifference(Color c1, Color c2){
