@@ -38,7 +38,7 @@ namespace Temtem_EncounterTracker
                             if(wasFound[j]) continue;
 
                             var temtemType = temtem.GetScreenText(await temtem.GetTemtem(bools[j])).Replace("\n", "");
-                            if (string.IsNullOrEmpty(temtemType) || temtemType.Length <= 2 || char.IsLower(temtemType[0])) continue;
+                            if (!nameIsLegit(temtemType)) continue;
                             temFound = true;
                             wasFound[j] = true;
 
@@ -69,6 +69,10 @@ namespace Temtem_EncounterTracker
                     await Task.Delay(200);
                 }
             }
+        }
+
+        private bool nameIsLegit(string temtemName){
+            return !(string.IsNullOrEmpty(temtemName) || temtemName.Length <= 2 || char.IsLower(temtemName[0]) || temtemName.Count(x => char.IsUpper(x)) > 1);
         }
 
         private async Task temtemEncountered(string Temtem)

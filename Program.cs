@@ -90,7 +90,8 @@ namespace Temtem_EncounterTracker
                             else
                             {
                                 encounter.Encounters[temtemName].HowOften--;
-                                encounter.Encounters[temtemName].HowOftenToday--;
+                                if(encounter.Encounters[temtemName].HowOftenToday > 0)
+                                    encounter.Encounters[temtemName].HowOftenToday--;
                             }
                             break;
                         case 'd':
