@@ -5,9 +5,16 @@ using System.Collections.Generic;
 
 namespace Temtem_EncounterTracker
 {
+    public enum Columns
+    {
+        Name, Encounters, Date
+    }
+
     class Program
     {
         public static Encounter encounter;
+        public static int RowChosen;
+        public static Columns SortBy;
 
         static void Main(string[] args)
         {
@@ -46,22 +53,22 @@ namespace Temtem_EncounterTracker
 #if !DEBUG
                 Console.Clear();
 #endif
+            Console.WriteLine(String.Format("        {0, -20}   {1, -13}   {2, -23}", "[1]", "[2]", "[3]"));
+            Console.WriteLine(String.Format("Index | {0, -20} | {1, -13} | {2, -23}", "Temtem", "Encounters", "Last Encounter"));
+            Console.WriteLine("--------------------------------------------------------------------------");
 
-            Console.WriteLine(String.Format("{0, -20} | {1, -13} | {2, -23}", "Temtem", "Encounters", "Last Encounter"));
-            Console.WriteLine("------------------------------------------------------------------");
-            int current = 0;
-            foreach (var temtem in encounter.Encounters.OrderByDescending(x => x.Value.LastEncounter))
-            {
-                if (current == RowChosen)
+            var sortedEncounter = encounter.GetSortedEncounters(SortBy);
+            for(int i = Math.Max(0, RowChosen - 9); i < Math.Max(10, RowChosen+1); i++){
+                if (i == RowChosen)
                     Console.BackgroundColor = ConsoleColor.DarkGray;
 
-                Console.WriteLine($"{temtem.Key,-20} | {temtem.Value.HowOften,-6} {(temtem.Value.HowOftenToday > 0 ? $"(+{temtem.Value.HowOftenToday})" : ""),-6} | {temtem.Value.LastEncounter,-23} UTC");
+                Console.WriteLine($"#{i+1,-4} | {sortedEncounter[i].Key,-20} | {sortedEncounter[i].Value.HowOften,-6} {(sortedEncounter[i].Value.HowOftenToday > 0 ? $"(+{sortedEncounter[i].Value.HowOftenToday})" : ""),-6} | {sortedEncounter[i].Value.LastEncounter,-23} UTC");
 
-                if (current++ == RowChosen)
+                if (i == RowChosen)
                     Console.BackgroundColor = ConsoleColor.Black;
             }
-            Console.WriteLine("------------------------------------------------------------------");
-            Console.WriteLine($"{"Total",-20} | {encounter.Encounters.Sum(x => x.Value.HowOften),-6} {(encounter.Encounters.Sum(x => x.Value.HowOftenToday) > 0 ? $"(+{encounter.Encounters.Sum(x => x.Value.HowOftenToday)})" : ""),-6} | ");
+            Console.WriteLine("--------------------------------------------------------------------------");
+            Console.WriteLine($"      | {"Total",-20} | {encounter.Encounters.Sum(x => x.Value.HowOften),-6} {(encounter.Encounters.Sum(x => x.Value.HowOftenToday) > 0 ? $"(+{encounter.Encounters.Sum(x => x.Value.HowOftenToday)})" : ""),-6} | ");
 
             foreach (var chosenTemtem in currentEncounter)
             {
@@ -73,8 +80,8 @@ namespace Temtem_EncounterTracker
                     var attackInfos = encounter.GetAttackValues(info.types);
                     Console.WriteLine($"\n{info.name} has the types: {string.Join(", ", info.types)}\n" +
                                       $"Good elements: {string.Join("| ", attackInfos.Where(x => x.Value > 1.1).Select(x => $"{x.Key} {x.Value}x "))}\n" +
-                                      $"Bad elements: {string.Join("| ", attackInfos.Where(x => x.Value < 0.9).Select(x => $"{x.Key} {x.Value}x "))}\n" +
-                                      $"\nCan be found in: {string.Join("\n", info.locations.Select(x => $"{x.island} - {x.location} ({x.frequency} levels {x.level})"))}");
+                                      $"Bad elements: {string.Join("| ", attackInfos.Where(x => x.Value < 0.9).Select(x => $"{x.Key} {x.Value}x "))}\n");// +
+                                      //$"\nCan be found in: {string.Join("\n", info.locations.Select(x => $"{x.island} - {x.location} ({x.frequency} levels {x.level})"))}");
 
                     Console.ForegroundColor = ConsoleColor.Gray;
                 }
@@ -83,9 +90,9 @@ namespace Temtem_EncounterTracker
             Console.WriteLine("\n[W] [S] to navigate between rows, [A] [D] to change the encounter value.\n[I] to get detailed information of the current encounter.");
         }
 
-        public static int RowChosen;
         public static async Task UserInput()
         {
+            SortBy = Columns.Date;
 #if !DEBUG
             RowChosen = -1;
             while (true)
@@ -103,15 +110,15 @@ namespace Temtem_EncounterTracker
                         case 'w':
                             if (RowChosen > 0) RowChosen--;
                             else RowChosen = encounter.Encounters.Count - 1;
-                            currentEncounter = new HashSet<string>(){encounter.Encounters.OrderByDescending(x => x.Value.LastEncounter).ToArray()[RowChosen].Key};
+                            currentEncounter = new HashSet<string>(){encounter.GetSortedEncounters(SortBy)[RowChosen].Key};
                             break;
                         case 's':
                             if (RowChosen < encounter.Encounters.Count - 1) RowChosen++;
                             else RowChosen = 0;
-                            currentEncounter = new HashSet<string>(){encounter.Encounters.OrderByDescending(x => x.Value.LastEncounter).ToArray()[RowChosen].Key};
+                            currentEncounter = new HashSet<string>(){encounter.GetSortedEncounters(SortBy)[RowChosen].Key};
                             break;
                         case 'a':
-                            var temtemName = encounter.Encounters.OrderByDescending(x => x.Value.LastEncounter).ToArray()[RowChosen].Key;
+                            var temtemName = encounter.GetSortedEncounters(SortBy)[RowChosen].Key;
                             if (encounter.Encounters[temtemName].HowOften <= 1) encounter.Encounters.Remove(temtemName);
                             else
                             {
@@ -122,7 +129,7 @@ namespace Temtem_EncounterTracker
                             }
                             break;
                         case 'd':
-                            temtemName = encounter.Encounters.OrderByDescending(x => x.Value.LastEncounter).ToArray()[RowChosen].Key;
+                            temtemName = encounter.GetSortedEncounters(SortBy)[RowChosen].Key;
                             encounter.Encounters[temtemName].HowOften++;
                             encounter.Encounters[temtemName].HowOftenToday++;
                             Encounter.Save(encounter);
@@ -133,6 +140,15 @@ namespace Temtem_EncounterTracker
                             string temtemB = encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(false)).Replace("\n", "").Split(" ").First();
                             if(encounter.NameIsLegit(temtemA))currentEncounter.Add(temtemA);
                             if(encounter.NameIsLegit(temtemB))currentEncounter.Add(temtemB);
+                            break;
+                        case '1':
+                            SortBy = Columns.Name;
+                            break;
+                        case '2':
+                            SortBy = Columns.Encounters;
+                            break;
+                        case '3':
+                            SortBy = Columns.Date;
                             break;
                         default:
                             RowChosen = -1;

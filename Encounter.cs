@@ -69,7 +69,10 @@ namespace Temtem_EncounterTracker
                             }
                         }
                         
-                        if(updateUI) await Program.DrawEncounterTable();
+                        if(updateUI){
+                            await Program.DrawEncounterTable();
+                            Save(this);
+                        }
                         await Task.Delay(100);
                     }
 
@@ -146,6 +149,17 @@ namespace Temtem_EncounterTracker
                 sw.WriteLine("Temtem");
                 sw.WriteLine("Early");
                 sw.Write("Access");
+            }
+        }
+
+        public List<KeyValuePair<string, EncounterInfo>> GetSortedEncounters(Columns column){
+            switch(column){
+                case Columns.Date: 
+                    return Encounters.OrderByDescending(x => x.Value.LastEncounter).ToList();
+                case Columns.Name:
+                    return Encounters.OrderByDescending(x => x.Key).ToList();
+                default:
+                    return Encounters.OrderByDescending(x => x.Value.HowOften).ToList();
             }
         }
     }
