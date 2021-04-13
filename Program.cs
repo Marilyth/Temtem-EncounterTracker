@@ -15,9 +15,12 @@ namespace Temtem_EncounterTracker
         public static Encounter encounter;
         public static int RowChosen;
         public static Columns SortBy;
+        public static AspectRatio Ratio;
 
         static void Main(string[] args)
         {
+            Console.WriteLine($"Currently running version {Updater.Version}");
+            Updater.CheckForUpdate().Wait();
             UserInput();
             while (true)
             {
@@ -58,7 +61,7 @@ namespace Temtem_EncounterTracker
             Console.WriteLine("--------------------------------------------------------------------------");
 
             var sortedEncounter = encounter.GetSortedEncounters(SortBy);
-            for(int i = Math.Max(0, RowChosen - 9); i < Math.Max(10, RowChosen+1); i++){
+            for(int i = Math.Max(0, RowChosen - 9); i < Math.Min(sortedEncounter.Count, Math.Max(10, RowChosen+1)); i++){
                 if (i == RowChosen)
                     Console.BackgroundColor = ConsoleColor.DarkGray;
 
@@ -68,7 +71,8 @@ namespace Temtem_EncounterTracker
                     Console.BackgroundColor = ConsoleColor.Black;
             }
             Console.WriteLine("--------------------------------------------------------------------------");
-            Console.WriteLine($"      | {"Total",-20} | {encounter.Encounters.Sum(x => x.Value.HowOften),-6} {(encounter.Encounters.Sum(x => x.Value.HowOftenToday) > 0 ? $"(+{encounter.Encounters.Sum(x => x.Value.HowOftenToday)})" : ""),-6} | ");
+            Console.WriteLine($"      | {"Total",-20} | {encounter.Encounters.Sum(x => x.Value.HowOften),-6} {(encounter.Encounters.Sum(x => x.Value.HowOftenToday) > 0 ? $"(+{encounter.Encounters.Sum(x => x.Value.HowOftenToday)})" : ""),-6} |");
+            encounter.WriteEncounterRate();
 
             foreach (var chosenTemtem in currentEncounter)
             {
@@ -136,10 +140,10 @@ namespace Temtem_EncounterTracker
                             break;
                         case 'i':
                             currentEncounter = new HashSet<string>();
-                            string temtemA = encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(true)).Replace("\n", "").Split(" ").First();
-                            string temtemB = encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(false)).Replace("\n", "").Split(" ").First();
-                            if(encounter.NameIsLegit(temtemA))currentEncounter.Add(temtemA);
-                            if(encounter.NameIsLegit(temtemB))currentEncounter.Add(temtemB);
+                            string temtemA = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(true)).Replace("\n", "").Split(" ").First(), out double wasFoundA);
+                            string temtemB = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(false)).Replace("\n", "").Split(" ").First(), out double wasFoundB);
+                            if(wasFoundA < 1)currentEncounter.Add(temtemA);
+                            if(wasFoundB < 1)currentEncounter.Add(temtemB);
                             break;
                         case '1':
                             SortBy = Columns.Name;
