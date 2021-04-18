@@ -14,7 +14,7 @@ namespace Temtem_EncounterTracker
 {
     public class Updater
     {
-        public static readonly string Version = "0.2.5";
+        public static readonly string Version = "0.2.6";
 
         public static async Task CheckForUpdate()
         {
