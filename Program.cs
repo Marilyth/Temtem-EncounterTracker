@@ -140,10 +140,20 @@ namespace Temtem_EncounterTracker
                             break;
                         case 'i':
                             currentEncounter = new HashSet<string>();
-                            string temtemA = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(true)).Replace("\n", "").Split(" ").First(), out double wasFoundA);
-                            string temtemB = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(false)).Replace("\n", "").Split(" ").First(), out double wasFoundB);
-                            if(wasFoundA < 1)currentEncounter.Add(temtemA);
-                            if(wasFoundB < 1)currentEncounter.Add(temtemB);
+                            wasFoundA = false;
+                            wasFoundB = false;
+                            for(int i = 0; i < 2; i++){
+                                foreach(var margin in new List<int>(){70, 100, 130, 170}){
+                                    if(!wasFoundA){
+                                        string temtemA = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(true, margin, i==1)).Replace("\n", "").Split(" ").First(), out wasFoundA);
+                                        if(wasFoundA >= 0.61)currentEncounter.Add(temtemA);
+                                    }
+                                    if(!wasFoundB){
+                                        string temtemB = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(false, margin, i==1)).Replace("\n", "").Split(" ").First(), out wasFoundB);
+                                        if(wasFoundB >= 0.61)currentEncounter.Add(temtemB);
+                                    }
+                                }
+                            }
                             break;
                         case '1':
                             SortBy = Columns.Name;

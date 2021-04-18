@@ -116,14 +116,7 @@ namespace Temtem_EncounterTracker
         }
 
         public void WriteEncounterRate(){
-            double sumOfDistances = 0;
-            double temtemPerHour = 0;
-            if(EncountersLast10Minutes.Count > 1){
-                for(int i = 1; i < EncountersLast10Minutes.Count; i++){
-                    sumOfDistances += (EncountersLast10Minutes[i] - EncountersLast10Minutes[i-1]).TotalMinutes;
-                }
-                temtemPerHour = 60 / (sumOfDistances / (EncountersLast10Minutes.Count - 1));
-            }
+            double temtemPerHour = EncountersLast10Minutes.Count * 6;
             Console.SetCursorPosition(47, Encounters.Count < 10 ? 4 + Encounters.Count : 14);
             Console.WriteLine($"{Math.Round(temtemPerHour, 2) + " Temtems per hour", -40}");
         }

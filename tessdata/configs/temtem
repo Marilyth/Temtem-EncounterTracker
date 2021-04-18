@@ -2,4 +2,4 @@ debug_file /dev/null
 load_system_dawg F
 load_freq_dawg F
 user_words_suffix    user-words
-tessedit_char_whitelist abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+tessedit_char_whitelist abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ10
