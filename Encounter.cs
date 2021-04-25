@@ -21,6 +21,8 @@ namespace Temtem_EncounterTracker
         public TemtemWindow temtem;
         [JsonIgnore]
         public List<DateTime> EncountersLast10Minutes = new List<DateTime>();
+        [JsonIgnore]
+        public string temtemA = null, temtemB = null;
 
         private Encounter()
         {
@@ -50,8 +52,9 @@ namespace Temtem_EncounterTracker
             {
                 if (temtem.IsTemtemActive())
                 {
-                    string temtemA = null, temtemB = null;
                     int loopCount = 0;
+                    temtemA = null;
+                    temtemB = null;
                     while (temtem.IsInEncounter())
                     {
                         bool updateUI = false;

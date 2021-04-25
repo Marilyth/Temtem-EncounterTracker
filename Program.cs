@@ -139,21 +139,8 @@ namespace Temtem_EncounterTracker
                             Encounter.Save(encounter);
                             break;
                         case 'i':
-                            currentEncounter = new HashSet<string>();
-                            wasFoundA = false;
-                            wasFoundB = false;
-                            for(int i = 0; i < 2; i++){
-                                foreach(var margin in new List<int>(){70, 100, 130, 170}){
-                                    if(!wasFoundA){
-                                        string temtemA = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(true, margin, i==1)).Replace("\n", "").Split(" ").First(), out wasFoundA);
-                                        if(wasFoundA >= 0.61)currentEncounter.Add(temtemA);
-                                    }
-                                    if(!wasFoundB){
-                                        string temtemB = encounter.GetClosestMatch(encounter.temtem.GetScreenText(await encounter.temtem.GetTemtem(false, margin, i==1)).Replace("\n", "").Split(" ").First(), out wasFoundB);
-                                        if(wasFoundB >= 0.61)currentEncounter.Add(temtemB);
-                                    }
-                                }
-                            }
+                            encounter.temtemA = null;
+                            encounter.temtemB = null;
                             break;
                         case '1':
                             SortBy = Columns.Name;
